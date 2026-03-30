@@ -10,6 +10,7 @@ import dev.frankheijden.insights.api.objects.wrappers.ScanObject;
 import dev.frankheijden.insights.api.reflection.RTileEntityTypes;
 import dev.frankheijden.insights.api.tasks.ScanTask;
 import dev.frankheijden.insights.api.utils.Constants;
+import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
@@ -89,17 +90,21 @@ public class CommandScanWorld extends InsightsCommand {
     ) {
         World world = player.getWorld();
 
-        // Generate chunk parts
-        Chunk[] chunks = world.getLoadedChunks();
-        List<ChunkPart> chunkParts = new ArrayList<>(chunks.length);
-        for (Chunk chunk : chunks) {
-            chunkParts.add(ChunkLocation.of(chunk).toPart());
-        }
+        // getLoadedChunks() requires the owning region context; route via GlobalRegionScheduler.
+        Bukkit.getGlobalRegionScheduler().run(plugin, t -> {
+            Chunk[] chunks = world.getLoadedChunks();
+            List<ChunkPart> chunkParts = new ArrayList<>(chunks.length);
+            for (Chunk chunk : chunks) {
+                chunkParts.add(ChunkLocation.of(chunk).toPart());
+            }
 
-        if (groupByChunk) {
-            ScanTask.scanAndDisplayGroupedByChunk(plugin, player, chunkParts, chunkParts.size(), options, items, false);
-        } else {
-            ScanTask.scanAndDisplay(plugin, player, chunkParts, chunkParts.size(), options, items, displayZeros);
-        }
+            if (groupByChunk) {
+                ScanTask.scanAndDisplayGroupedByChunk(
+                        plugin, player, chunkParts, chunkParts.size(), options, items, false
+                );
+            } else {
+                ScanTask.scanAndDisplay(plugin, player, chunkParts, chunkParts.size(), options, items, displayZeros);
+            }
+        });
     }
 }

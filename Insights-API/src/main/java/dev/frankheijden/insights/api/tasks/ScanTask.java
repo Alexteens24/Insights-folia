@@ -13,10 +13,9 @@ import dev.frankheijden.insights.api.objects.wrappers.ScanObject;
 import dev.frankheijden.insights.api.util.TriConsumer;
 import dev.frankheijden.insights.api.utils.EnumUtils;
 import dev.frankheijden.insights.api.utils.StringUtils;
+import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
 import net.kyori.adventure.text.Component;
 import org.bukkit.entity.Player;
-import org.bukkit.scheduler.BukkitScheduler;
-import org.bukkit.scheduler.BukkitTask;
 import java.time.Duration;
 import java.util.Comparator;
 import java.util.Iterator;
@@ -26,6 +25,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
@@ -51,7 +51,7 @@ public class ScanTask<R> implements Runnable {
     private final AtomicBoolean completedExceptionally = new AtomicBoolean();
     private final int chunkCount;
     private long lastInfo = 0;
-    private BukkitTask task;
+    private ScheduledTask task;
 
     /**
      * Creates a new ScanTask to scan a collection of ChunkPart's.
@@ -370,8 +370,14 @@ public class ScanTask<R> implements Runnable {
     }
 
     private void start() {
-        BukkitScheduler scheduler = plugin.getServer().getScheduler();
-        task = scheduler.runTaskTimer(plugin, this, 0, plugin.getSettings().SCANS_ITERATION_INTERVAL_TICKS);
+        long periodMs = Math.max(1L, plugin.getSettings().SCANS_ITERATION_INTERVAL_TICKS * 50L);
+        task = plugin.getServer().getAsyncScheduler().runAtFixedRate(
+                plugin,
+                t -> this.run(),
+                1L,
+                periodMs,
+                TimeUnit.MILLISECONDS
+        );
     }
 
     private void cancel() {
@@ -414,24 +420,17 @@ public class ScanTask<R> implements Runnable {
             // Load the chunk
             var chunkPart = scanQueue.next();
             var loc = chunkPart.getChunkLocation();
-            var world = loc.getWorld();
 
             CompletableFuture<Storage> storageFuture;
-            if (world.isChunkLoaded(loc.getX(), loc.getZ())) {
-                storageFuture = executor.submit(
-                        world.getChunkAt(loc.getX(), loc.getZ()),
-                        chunkPart.getChunkCuboid(),
-                        options
-                );
-            } else {
-                storageFuture = executor.submit(
-                        loc.getWorld(),
-                        loc.getX(),
-                        loc.getZ(),
-                        chunkPart.getChunkCuboid(),
-                        options
-                );
-            }
+            // Always route through the world/coordinate path; the executor dispatches on the
+            // chunk's owning region for loaded chunks and uses the worker pool for unloaded ones.
+            storageFuture = executor.submit(
+                    loc.getWorld(),
+                    loc.getX(),
+                    loc.getZ(),
+                    chunkPart.getChunkCuboid(),
+                    options
+            );
 
             storageFuture
                     .thenAccept(storage -> resultMerger.accept(storage, loc, result))

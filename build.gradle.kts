@@ -56,7 +56,6 @@ subprojects {
     val libs = rootProject.libs
     dependencies {
         compileOnly(libs.paperApi)
-        implementation(libs.paperLib)
         implementation(libs.bStatsBukkit)
         implementation(libs.adventureApi)
         implementation(libs.adventureMiniMessage)

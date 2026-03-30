@@ -10,6 +10,7 @@ import dev.frankheijden.insights.api.util.MaterialTags;
 import dev.frankheijden.insights.api.utils.BlockUtils;
 import dev.frankheijden.insights.api.utils.ChunkUtils;
 import io.papermc.paper.event.block.BlockBreakBlockEvent;
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.Tag;
 import org.bukkit.block.Block;
@@ -356,7 +357,8 @@ public class BlockListener extends InsightsListener {
             materials[i] = material;
         }
 
-        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+        var pistonBlock = event.getBlock();
+        Bukkit.getRegionScheduler().runDelayed(plugin, pistonBlock.getLocation(), t -> {
             for (var i = 0; i < blocks.size(); i++) {
                 var relative = blocks.get(i).getRelative(event.getDirection());
                 var material = relative.getType();

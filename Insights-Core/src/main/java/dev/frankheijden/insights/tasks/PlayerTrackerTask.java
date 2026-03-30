@@ -4,6 +4,7 @@ import dev.frankheijden.insights.api.InsightsPlugin;
 import dev.frankheijden.insights.api.concurrent.ScanOptions;
 import dev.frankheijden.insights.api.objects.chunk.ChunkLocation;
 import dev.frankheijden.insights.api.tasks.InsightsAsyncTask;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import java.util.HashSet;
 import java.util.Map;
@@ -46,13 +47,12 @@ public class PlayerTrackerTask extends InsightsAsyncTask {
             return;
         }
 
-        plugin.getServer().getScheduler().runTask(plugin, () -> {
-            long now = System.nanoTime();
-            for (ChunkLocation loc : locations) {
-                var world = loc.getWorld();
+        for (ChunkLocation loc : locations) {
+            var world = loc.getWorld();
+            // Schedule on the chunk's owning region to safely access world state.
+            Bukkit.getRegionScheduler().run(plugin, world, loc.getX(), loc.getZ(), t -> {
                 if (world.isChunkLoaded(loc.getX(), loc.getZ())) {
-                    this.scanLocations.put(loc, now);
-
+                    this.scanLocations.put(loc, System.nanoTime());
                     var chunk = world.getChunkAt(loc.getX(), loc.getZ());
                     plugin.getChunkContainerExecutor().submit(chunk, ScanOptions.all()).whenComplete((s, e) -> {
                         if (s == null) {
@@ -71,7 +71,8 @@ public class PlayerTrackerTask extends InsightsAsyncTask {
                         this.scanLocations.remove(loc);
                     });
                 }
-            }
-        });
+            });
+        }
     }
 }
+

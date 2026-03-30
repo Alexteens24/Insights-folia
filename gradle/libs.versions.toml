@@ -1,7 +1,7 @@
 [versions]
 # libraries
 semver = "0.10.2"
-minecraft = "1.21.3-R0.1-SNAPSHOT"
+minecraft = "1.21.11-R0.1-SNAPSHOT"
 paperLib = "1.0.8"
 bStats = "3.0.0"
 adventure = "4.17.0"

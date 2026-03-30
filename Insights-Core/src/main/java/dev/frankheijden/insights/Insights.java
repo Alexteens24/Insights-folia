@@ -42,12 +42,12 @@ import dev.frankheijden.insights.nms.core.InsightsNMS;
 import dev.frankheijden.insights.placeholders.InsightsPlaceholderExpansion;
 import dev.frankheijden.insights.tasks.PlayerTrackerTask;
 import io.leangen.geantyref.TypeToken;
-import io.papermc.lib.PaperLib;
+import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
 import net.kyori.adventure.platform.bukkit.BukkitAudiences;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.command.CommandSender;
-import org.bukkit.scheduler.BukkitTask;
+import java.util.concurrent.TimeUnit;
 import org.incendo.cloud.annotations.AnnotationParser;
 import org.incendo.cloud.execution.ExecutionCoordinator;
 import org.incendo.cloud.paper.PaperCommandManager;
@@ -83,8 +83,8 @@ public class Insights extends InsightsPlugin {
     private ScanHistory scanHistory;
     private ListenerManager listenerManager;
     private InsightsPlaceholderExpansion placeholderExpansion;
-    private BukkitTask playerTracker = null;
-    private BukkitTask updateChecker = null;
+    private ScheduledTask playerTracker = null;
+    private ScheduledTask updateChecker = null;
     private BukkitAudiences audiences = null;
     private RedstoneUpdateCount redstoneUpdateCount = null;
     private ChunkTeleport chunkTeleport;
@@ -102,7 +102,7 @@ public class Insights extends InsightsPlugin {
 
         if (isIncompatible()) {
             throw new RuntimeException("Insights is incompatible with your server version, "
-                    + "we require a Paper backend and a Minecraft version of at least " + minimumCompatibleVersion);
+                    + "we require Folia and a Minecraft version of at least " + minimumCompatibleVersion);
         }
         nms = InsightsNMS.get();
 
@@ -117,7 +117,7 @@ public class Insights extends InsightsPlugin {
             ex.printStackTrace();
         }
 
-        getServer().getScheduler().runTaskLater(this, () -> {
+        getServer().getGlobalRegionScheduler().runDelayed(this, t -> {
             try {
                 addonManager.loadAddons();
             } catch (IOException ex) {
@@ -148,7 +148,16 @@ public class Insights extends InsightsPlugin {
 
     private static boolean isIncompatible() {
         var minecraftVersion = Version.parse(Bukkit.getServer().getMinecraftVersion(), false);
-        return !PaperLib.isPaper() || minecraftVersion.compareTo(minimumCompatibleVersion) < 0;
+        return !isFolia() || minecraftVersion.compareTo(minimumCompatibleVersion) < 0;
+    }
+
+    private static boolean isFolia() {
+        try {
+            Class.forName("io.papermc.paper.threadedregions.RegionizedServer");
+            return true;
+        } catch (ClassNotFoundException e) {
+            return false;
+        }
     }
 
     @Override
@@ -379,11 +388,13 @@ public class Insights extends InsightsPlugin {
         }
 
         if (settings.CHUNK_SCANS_MODE == Settings.ChunkScanMode.ALWAYS) {
-            playerTracker = getServer().getScheduler().runTaskTimerAsynchronously(
+            var trackerTask = new PlayerTrackerTask(this);
+            playerTracker = getServer().getAsyncScheduler().runAtFixedRate(
                     this,
-                    new PlayerTrackerTask(this),
-                    0,
-                    settings.CHUNK_SCANS_PLAYER_TRACKER_INTERVAL_TICKS
+                    t -> trackerTask.run(),
+                    1L,
+                    Math.max(1L, settings.CHUNK_SCANS_PLAYER_TRACKER_INTERVAL_TICKS * 50L),
+                    TimeUnit.MILLISECONDS
             );
         }
 
@@ -392,11 +403,13 @@ public class Insights extends InsightsPlugin {
         }
 
         if (settings.UPDATE_CHECKER_ENABLED) {
-            updateChecker = getServer().getScheduler().runTaskTimerAsynchronously(
+            var checkerTask = new UpdateCheckerTask(this);
+            updateChecker = getServer().getAsyncScheduler().runAtFixedRate(
                     this,
-                    new UpdateCheckerTask(this),
-                    20,
-                    20L * settings.UPDATE_CHECKER_INTERVAL_SECONDS
+                    t -> checkerTask.run(),
+                    1000L,
+                    Math.max(1L, settings.UPDATE_CHECKER_INTERVAL_SECONDS * 1000L),
+                    TimeUnit.MILLISECONDS
             );
         }
 
