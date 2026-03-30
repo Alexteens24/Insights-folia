@@ -144,15 +144,15 @@ public class ScanTask<R> implements Runnable {
                     if (!notify) return;
 
                     PlayerSchedulerUtils.run(plugin, player, () -> {
-                    float progress = (float) info.getChunksDone() / (float) info.getChunks();
-                    notification.progress(progress)
-                        .create()
-                        .addTemplates(
-                            Messages.tagOf("percentage", StringUtils.prettyOneDecimal(progress * 100)),
-                            Messages.tagOf("count", StringUtils.pretty(info.getChunksDone())),
-                            Messages.tagOf("total", StringUtils.pretty(info.getChunks()))
-                        )
-                        .send();
+                        float progress = (float) info.getChunksDone() / (float) info.getChunks();
+                        notification.progress(progress)
+                                .create()
+                                .addTemplates(
+                                        Messages.tagOf("percentage", StringUtils.prettyOneDecimal(progress * 100)),
+                                        Messages.tagOf("count", StringUtils.pretty(info.getChunksDone())),
+                                        Messages.tagOf("total", StringUtils.pretty(info.getChunks()))
+                                )
+                                .send();
                     });
                 },
                 plugin.getSettings().SCANS_INFO_INTERVAL_MILLIS,
@@ -190,44 +190,44 @@ public class ScanTask<R> implements Runnable {
                 (storage, loc, acc) -> storage.mergeRight(acc),
                 storage -> {
                     if (storage == null) {
-                    return;
+                        return;
                     }
 
                     PlayerSchedulerUtils.run(plugin, player, () -> {
-                    @SuppressWarnings("VariableDeclarationUsageDistance")
-                    long millis = (System.nanoTime() - start) / 1000000L;
+                        @SuppressWarnings("VariableDeclarationUsageDistance")
+                        long millis = (System.nanoTime() - start) / 1000000L;
 
-                    var messages = plugin.getMessages();
+                        var messages = plugin.getMessages();
 
-                    ScanObject<?>[] displayItems = (items == null ? storage.keys() : items).stream()
-                        .filter(item -> storage.count(item) != 0 || displayZeros)
-                        .sorted(Comparator.comparing(ScanObject::name))
-                        .toArray(ScanObject[]::new);
+                        ScanObject<?>[] displayItems = (items == null ? storage.keys() : items).stream()
+                                .filter(item -> storage.count(item) != 0 || displayZeros)
+                                .sorted(Comparator.comparing(ScanObject::name))
+                                .toArray(ScanObject[]::new);
 
-                    var footer = messages.getMessage(Messages.Key.SCAN_FINISH_FOOTER).addTemplates(
-                        Messages.tagOf("chunks", StringUtils.pretty(chunkCount)),
-                        Messages.tagOf(
-                            "blocks",
-                            StringUtils.pretty(storage.count(s -> s.getType() == ScanObject.Type.MATERIAL))
-                        ),
-                        Messages.tagOf(
-                            "entities",
-                            StringUtils.pretty(storage.count(s -> s.getType() == ScanObject.Type.ENTITY))
-                        ),
-                        Messages.tagOf("time", StringUtils.pretty(Duration.ofMillis(millis)))
-                    );
+                        var footer = messages.getMessage(Messages.Key.SCAN_FINISH_FOOTER).addTemplates(
+                                Messages.tagOf("chunks", StringUtils.pretty(chunkCount)),
+                                Messages.tagOf(
+                                        "blocks",
+                                        StringUtils.pretty(storage.count(s -> s.getType() == ScanObject.Type.MATERIAL))
+                                ),
+                                Messages.tagOf(
+                                        "entities",
+                                        StringUtils.pretty(storage.count(s -> s.getType() == ScanObject.Type.ENTITY))
+                                ),
+                                Messages.tagOf("time", StringUtils.pretty(Duration.ofMillis(millis)))
+                        );
 
-                    var message = messages.createPaginatedMessage(
-                        messages.getMessage(Messages.Key.SCAN_FINISH_HEADER),
-                        Messages.Key.SCAN_FINISH_FORMAT,
-                        footer,
-                        displayItems,
-                        storage::count,
-                        item -> Component.text(EnumUtils.pretty(item.getObject()))
-                    );
+                        var message = messages.createPaginatedMessage(
+                                messages.getMessage(Messages.Key.SCAN_FINISH_HEADER),
+                                Messages.Key.SCAN_FINISH_FORMAT,
+                                footer,
+                                displayItems,
+                                storage::count,
+                                item -> Component.text(EnumUtils.pretty(item.getObject()))
+                        );
 
-                    plugin.getScanHistory().setHistory(player.getUniqueId(), message);
-                    message.sendTo(player, 0);
+                        plugin.getScanHistory().setHistory(player.getUniqueId(), message);
+                        message.sendTo(player, 0);
                     });
                 }
         );
@@ -312,67 +312,67 @@ public class ScanTask<R> implements Runnable {
                 (storage, loc, map) -> map.put(loc, storage),
                 map -> {
                     if (map == null) {
-                    return;
+                        return;
                     }
 
                     PlayerSchedulerUtils.run(plugin, player, () -> {
-                    @SuppressWarnings("VariableDeclarationUsageDistance")
-                    long millis = (System.nanoTime() - start) / 1000000L;
+                        @SuppressWarnings("VariableDeclarationUsageDistance")
+                        long millis = (System.nanoTime() - start) / 1000000L;
 
-                    var messages = plugin.getMessages();
+                        var messages = plugin.getMessages();
 
-                    ChunkLocation[] keys = map.entrySet().stream()
-                        .filter(entry -> {
-                            var storage = entry.getValue();
-                            return displayZeros || storage.count(items == null ? storage.keys() : items) != 0;
-                        })
-                        .sorted(Comparator.<Map.Entry<ChunkLocation, Storage>>comparingLong(entry -> {
-                            var storage = entry.getValue();
-                            return storage.count(items == null ? storage.keys() : items);
-                        }).reversed())
-                        .map(Map.Entry::getKey)
-                        .toArray(ChunkLocation[]::new);
+                        ChunkLocation[] keys = map.entrySet().stream()
+                                .filter(entry -> {
+                                    var storage = entry.getValue();
+                                    return displayZeros || storage.count(items == null ? storage.keys() : items) != 0;
+                                })
+                                .sorted(Comparator.<Map.Entry<ChunkLocation, Storage>>comparingLong(entry -> {
+                                    var storage = entry.getValue();
+                                    return storage.count(items == null ? storage.keys() : items);
+                                }).reversed())
+                                .map(Map.Entry::getKey)
+                                .toArray(ChunkLocation[]::new);
 
-                    long blockCount = map.values()
-                        .stream()
-                        .mapToLong(storage -> storage.count(i -> i.getType() == ScanObject.Type.MATERIAL))
-                        .sum();
-                    long entityCount = map.values()
-                        .stream()
-                        .mapToLong(storage -> storage.count(i -> i.getType() == ScanObject.Type.ENTITY))
-                        .sum();
+                        long blockCount = map.values()
+                                .stream()
+                                .mapToLong(storage -> storage.count(i -> i.getType() == ScanObject.Type.MATERIAL))
+                                .sum();
+                        long entityCount = map.values()
+                                .stream()
+                                .mapToLong(storage -> storage.count(i -> i.getType() == ScanObject.Type.ENTITY))
+                                .sum();
 
-                    var footer = messages.getMessage(Messages.Key.SCAN_FINISH_FOOTER).addTemplates(
-                        Messages.tagOf("chunks", StringUtils.pretty(chunkCount)),
-                        Messages.tagOf("blocks", StringUtils.pretty(blockCount)),
-                        Messages.tagOf("entities", StringUtils.pretty(entityCount)),
-                        Messages.tagOf("time", StringUtils.pretty(Duration.ofMillis(millis)))
-                    );
+                        var footer = messages.getMessage(Messages.Key.SCAN_FINISH_FOOTER).addTemplates(
+                                Messages.tagOf("chunks", StringUtils.pretty(chunkCount)),
+                                Messages.tagOf("blocks", StringUtils.pretty(blockCount)),
+                                Messages.tagOf("entities", StringUtils.pretty(entityCount)),
+                                Messages.tagOf("time", StringUtils.pretty(Duration.ofMillis(millis)))
+                        );
 
-                    var message = messages.<ChunkLocation>createPaginatedMessage(
-                        messages.getMessage(Messages.Key.SCAN_FINISH_HEADER),
-                        Messages.Key.SCAN_FINISH_FORMAT,
-                        footer,
-                        keys,
-                        key -> {
-                            var storage = map.get(key);
-                            return storage.count(items == null ? storage.keys() : items);
-                        },
-                        key -> {
-                            var worldName = key.getWorld().getName();
-                            var x = Integer.toString(key.getX());
-                            var z = Integer.toString(key.getZ());
+                        var message = messages.<ChunkLocation>createPaginatedMessage(
+                                messages.getMessage(Messages.Key.SCAN_FINISH_HEADER),
+                                Messages.Key.SCAN_FINISH_FORMAT,
+                                footer,
+                                keys,
+                                key -> {
+                                    var storage = map.get(key);
+                                    return storage.count(items == null ? storage.keys() : items);
+                                },
+                                key -> {
+                                    var worldName = key.getWorld().getName();
+                                    var x = Integer.toString(key.getX());
+                                    var z = Integer.toString(key.getZ());
 
-                            return messages.getMessage(Messages.Key.SCAN_FINISH_CHUNK_FORMAT).addTemplates(
-                                Messages.tagOf("world", worldName),
-                                Messages.tagOf("chunk-x", x),
-                                Messages.tagOf("chunk-z", z)
-                            ).toComponent().orElse(Component.text(worldName + " @ " + x + ", " + z));
-                        }
-                    );
+                                    return messages.getMessage(Messages.Key.SCAN_FINISH_CHUNK_FORMAT).addTemplates(
+                                            Messages.tagOf("world", worldName),
+                                            Messages.tagOf("chunk-x", x),
+                                            Messages.tagOf("chunk-z", z)
+                                    ).toComponent().orElse(Component.text(worldName + " @ " + x + ", " + z));
+                                }
+                        );
 
-                    plugin.getScanHistory().setHistory(player.getUniqueId(), message);
-                    message.sendTo(player, 0);
+                        plugin.getScanHistory().setHistory(player.getUniqueId(), message);
+                        message.sendTo(player, 0);
                     });
                 }
         );
