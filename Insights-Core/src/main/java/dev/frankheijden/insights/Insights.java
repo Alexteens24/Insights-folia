@@ -261,7 +261,7 @@ public class Insights extends InsightsPlugin {
 
     private void loadCommands() {
         var commandManager = PaperCommandManager.builder(new CommandSenderMapper())
-                .executionCoordinator(ExecutionCoordinator.asyncCoordinator())
+                .executionCoordinator(ExecutionCoordinator.simpleCoordinator())
                 .buildOnEnable(this);
 
         // Register parsers
