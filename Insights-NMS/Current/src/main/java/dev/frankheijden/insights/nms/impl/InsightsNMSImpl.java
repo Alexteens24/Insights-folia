@@ -95,7 +95,8 @@ public class InsightsNMSImpl extends InsightsNMS {
                         Blocks.AIR.defaultBlockState(),
                         new BlockState[0]
                 );
-                dataResult = blockStateCodec.parse(NbtOps.INSTANCE, sectionTag.getCompound("block_states").orElseThrow())
+                dataResult = blockStateCodec
+                    .parse(NbtOps.INSTANCE, sectionTag.getCompound("block_states").orElseThrow())
                         .promotePartial(message -> logger.severe(String.format(
                         CHUNK_ERROR,
                         chunkX,
@@ -111,7 +112,11 @@ public class InsightsNMSImpl extends InsightsNMS {
                     throw ex;
                 }
             } else {
-                blockStateContainer = new PalettedContainer<>(Blocks.AIR.defaultBlockState(), strategy, new BlockState[0]);
+                blockStateContainer = new PalettedContainer<>(
+                        Blocks.AIR.defaultBlockState(),
+                        strategy,
+                        new BlockState[0]
+                );
             }
 
             LevelChunkSection chunkSection = new LevelChunkSection(blockStateContainer, null);

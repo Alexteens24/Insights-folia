@@ -15,6 +15,7 @@ import java.net.ConnectException;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.SocketTimeoutException;
+import java.net.URI;
 import java.net.URL;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
@@ -28,7 +29,7 @@ public class UpdateCheckerTask extends InsightsAsyncTask {
     static {
         URL githubLink = null;
         try {
-            githubLink = new URL("https://api.github.com/repos/InsightsPlugin/Insights/releases/latest");
+            githubLink = URI.create("https://api.github.com/repos/InsightsPlugin/Insights/releases/latest").toURL();
         } catch (MalformedURLException ex) {
             ex.printStackTrace();
         }
@@ -128,7 +129,7 @@ public class UpdateCheckerTask extends InsightsAsyncTask {
                     .split("-")[0]; // Remove any suffixes
             String body = json.getAsJsonPrimitive("body").getAsString();
 
-            if (VersionUtils.isNewVersion(plugin.getDescription().getVersion(), version)) {
+            if (VersionUtils.isNewVersion(plugin.getPluginMeta().getVersion(), version)) {
                 plugin.getLogger().log(Level.INFO, UPDATE_AVAILABLE, version);
                 plugin.getLogger().log(Level.INFO, RELEASE_INFO, body);
                 cachedUpdate = new Update(version, body);

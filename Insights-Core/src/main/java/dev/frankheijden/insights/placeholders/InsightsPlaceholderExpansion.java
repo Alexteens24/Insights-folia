@@ -7,6 +7,7 @@ import dev.frankheijden.insights.api.config.LimitEnvironment;
 import dev.frankheijden.insights.api.config.limits.Limit;
 import dev.frankheijden.insights.api.objects.wrappers.ScanObject;
 import dev.frankheijden.insights.api.utils.ChunkUtils;
+import dev.frankheijden.insights.api.utils.PlayerSchedulerUtils;
 import dev.frankheijden.insights.api.utils.StringUtils;
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 import org.bukkit.Location;
@@ -31,17 +32,21 @@ public class InsightsPlaceholderExpansion extends PlaceholderExpansion {
 
     @Override
     public String getAuthor() {
-        return String.join(", ", plugin.getDescription().getAuthors());
+        return String.join(", ", plugin.getPluginMeta().getAuthors());
     }
 
     @Override
     public String getVersion() {
-        return plugin.getDescription().getVersion();
+        return plugin.getPluginMeta().getVersion();
     }
 
     @Override
     public String onPlaceholderRequest(Player player, String identifier) {
-        if (identifier == null) return "";
+        if (player == null || identifier == null) return "";
+        return PlayerSchedulerUtils.call(plugin, player, () -> resolvePlaceholder(player, identifier), () -> "");
+    }
+
+    private String resolvePlaceholder(Player player, String identifier) {
         String[] args = identifier.split("_");
         switch (args[0].toLowerCase(Locale.ENGLISH)) {
             case "limits":

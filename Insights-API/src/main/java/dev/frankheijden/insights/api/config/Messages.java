@@ -338,7 +338,7 @@ public class Messages {
         }
 
         private Component createButton(int page, ButtonType type) {
-            var button = Component.empty().toBuilder();
+            var button = Component.text();
 
             Key buttonColor;
             if ((type == ButtonType.LEFT && page == 0) || (type == ButtonType.RIGHT && page == getPageAmount() - 1)) {

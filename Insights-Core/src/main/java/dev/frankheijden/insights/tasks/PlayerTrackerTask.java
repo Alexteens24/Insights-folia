@@ -69,22 +69,25 @@ public class PlayerTrackerTask extends InsightsAsyncTask {
                             if (world.isChunkLoaded(loc.getX(), loc.getZ())) {
                                 scanLocations.put(loc, System.nanoTime());
                                 var chunk = world.getChunkAt(loc.getX(), loc.getZ());
-                                plugin.getChunkContainerExecutor().submit(chunk, ScanOptions.all()).whenComplete((s, e) -> {
-                                    if (s == null) {
-                                        int hash = e.getStackTrace()[0].hashCode();
-                                        if (!knownErrorStackTraceHashes.contains(hash)) {
-                                            knownErrorStackTraceHashes.add(hash);
-                                            plugin.getLogger().log(
-                                                    Level.SEVERE,
-                                                    "Error occurred while scanning "
-                                                            + loc
-                                                            + " (future errors with the same stacktrace are suppressed)",
-                                                    e
-                                            );
-                                        }
-                                    }
-                                    scanLocations.remove(loc);
-                                });
+                                plugin.getChunkContainerExecutor()
+                                        .submit(chunk, ScanOptions.all())
+                                        .whenComplete((s, e) -> {
+                                            if (s == null) {
+                                                int hash = e.getStackTrace()[0].hashCode();
+                                                if (!knownErrorStackTraceHashes.contains(hash)) {
+                                                    knownErrorStackTraceHashes.add(hash);
+                                                    plugin.getLogger().log(
+                                                            Level.SEVERE,
+                                                            "Error occurred while scanning "
+                                                                    + loc
+                                                                    + " (future errors with the same stacktrace are"
+                                                                    + " suppressed)",
+                                                            e
+                                                    );
+                                                }
+                                            }
+                                            scanLocations.remove(loc);
+                                        });
                             }
                         });
                     }
