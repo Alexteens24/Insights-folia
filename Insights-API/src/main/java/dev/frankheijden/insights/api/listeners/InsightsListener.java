@@ -17,6 +17,7 @@ import dev.frankheijden.insights.api.objects.chunk.ChunkPart;
 import dev.frankheijden.insights.api.objects.wrappers.ScanObject;
 import dev.frankheijden.insights.api.tasks.ScanTask;
 import dev.frankheijden.insights.api.utils.ChunkUtils;
+import dev.frankheijden.insights.api.utils.PlayerSchedulerUtils;
 import dev.frankheijden.insights.api.utils.StringUtils;
 import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 import org.bukkit.Chunk;
@@ -139,7 +140,11 @@ public abstract class InsightsListener extends InsightsBase implements Listener 
 
             // Notify the user scan completed
             if (plugin.getSettings().canReceiveAreaScanNotifications(player)) {
-                plugin.getMessages().getMessage(Messages.Key.AREA_SCAN_COMPLETED).sendTo(player);
+                PlayerSchedulerUtils.run(
+                        plugin,
+                        player,
+                        () -> plugin.getMessages().getMessage(Messages.Key.AREA_SCAN_COMPLETED).sendTo(player)
+                );
             }
         };
 
@@ -198,16 +203,17 @@ public abstract class InsightsListener extends InsightsBase implements Listener 
         // Notify the user (if they have permission)
         if (player.hasPermission("insights.notifications")) {
             float progress = (float) (count + delta) / limitInfo.getLimit();
-            plugin.getNotifications().getCachedProgress(player.getUniqueId(), Messages.Key.LIMIT_NOTIFICATION)
-                    .progress(progress)
-                    .add(player)
-                    .create()
-                    .addTemplates(
-                            Messages.tagOf("name", limitInfo.getName()),
-                            Messages.tagOf("count", StringUtils.pretty(count + delta)),
-                            Messages.tagOf("limit", StringUtils.pretty(limitInfo.getLimit()))
-                    )
-                    .send();
+            PlayerSchedulerUtils.run(plugin, player, () -> plugin.getNotifications()
+                .getCachedProgress(player.getUniqueId(), Messages.Key.LIMIT_NOTIFICATION)
+                .progress(progress)
+                .add(player)
+                .create()
+                .addTemplates(
+                    Messages.tagOf("name", limitInfo.getName()),
+                    Messages.tagOf("count", StringUtils.pretty(count + delta)),
+                    Messages.tagOf("limit", StringUtils.pretty(limitInfo.getLimit()))
+                )
+                .send());
         }
     }
 
@@ -310,16 +316,17 @@ public abstract class InsightsListener extends InsightsBase implements Listener 
             Consumer<Storage> notification = storage -> {
                 long count = storage.count(limit, item);
                 float progress = (float) count / limitInfo.getLimit();
-                plugin.getNotifications().getCachedProgress(uuid, Messages.Key.LIMIT_NOTIFICATION)
-                        .progress(progress)
-                        .add(player)
-                        .create()
-                        .addTemplates(
-                                Messages.tagOf("name", limitInfo.getName()),
-                                Messages.tagOf("count", StringUtils.pretty(count)),
-                                Messages.tagOf("limit", StringUtils.pretty(limitInfo.getLimit()))
-                        )
-                        .send();
+                PlayerSchedulerUtils.run(plugin, player, () -> plugin.getNotifications()
+                    .getCachedProgress(uuid, Messages.Key.LIMIT_NOTIFICATION)
+                    .progress(progress)
+                    .add(player)
+                    .create()
+                    .addTemplates(
+                        Messages.tagOf("name", limitInfo.getName()),
+                        Messages.tagOf("count", StringUtils.pretty(count)),
+                        Messages.tagOf("limit", StringUtils.pretty(limitInfo.getLimit()))
+                    )
+                    .send());
             };
 
             // If the data is already stored, send the notification immediately.
@@ -353,7 +360,7 @@ public abstract class InsightsListener extends InsightsBase implements Listener 
 
     private void scanRegion(Player player, Region region, Consumer<Storage> storageConsumer) {
         // Submit the cuboid for scanning
-        plugin.getAddonScanTracker().add(region.getAddon());
+        plugin.getAddonScanTracker().add(region.getKey());
         List<ChunkPart> chunkParts = region.toChunkParts();
         ScanTask.scan(
                 plugin,
@@ -365,7 +372,7 @@ public abstract class InsightsListener extends InsightsBase implements Listener 
                 DistributionStorage::new,
                 (storage, loc, acc) -> storage.mergeRight(acc),
                 storage -> {
-                    plugin.getAddonScanTracker().remove(region.getAddon());
+                    plugin.getAddonScanTracker().remove(region.getKey());
 
                     // Store the cuboid
                     plugin.getAddonStorage().put(region.getKey(), storage);

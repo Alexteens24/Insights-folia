@@ -8,16 +8,16 @@ import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
-import java.util.LinkedList;
 import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class BossBarNotification implements Notification {
 
     protected final InsightsPlugin plugin;
     protected final BossBar bossBar;
     protected final Messages.Message content;
-    protected final Queue<Audience> receivers = new LinkedList<>();
-    protected final Queue<Audience> viewers = new LinkedList<>();
+    protected final Queue<Audience> receivers = new ConcurrentLinkedQueue<>();
+    protected final Queue<Audience> viewers = new ConcurrentLinkedQueue<>();
     protected final int ticks;
     protected final Runnable bossBarClearer;
     protected ScheduledTask task;
@@ -28,8 +28,9 @@ public class BossBarNotification implements Notification {
         this.content = content;
         this.ticks = ticks;
         this.bossBarClearer = () -> {
-            while (!viewers.isEmpty()) {
-                viewers.poll().hideBossBar(bossBar);
+            Audience viewer;
+            while ((viewer = viewers.poll()) != null) {
+                viewer.hideBossBar(bossBar);
             }
         };
     }
@@ -50,8 +51,8 @@ public class BossBarNotification implements Notification {
                 }
                 bossBar.name(content.toComponent().orElse(Component.empty()));
 
-                while (!receivers.isEmpty()) {
-                    var audience = receivers.poll();
+                Audience audience;
+                while ((audience = receivers.poll()) != null) {
                     audience.showBossBar(bossBar);
                     viewers.add(audience);
                 }

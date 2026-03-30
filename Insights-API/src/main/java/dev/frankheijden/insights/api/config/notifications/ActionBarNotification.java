@@ -3,9 +3,9 @@ package dev.frankheijden.insights.api.config.notifications;
 import dev.frankheijden.insights.api.InsightsPlugin;
 import dev.frankheijden.insights.api.config.Messages;
 import org.bukkit.entity.Player;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class ActionBarNotification implements Notification {
 
@@ -16,7 +16,7 @@ public class ActionBarNotification implements Notification {
     protected ActionBarNotification(InsightsPlugin plugin, Messages.Message content) {
         this.plugin = plugin;
         this.content = content;
-        this.receivers = new HashMap<>();
+        this.receivers = new ConcurrentHashMap<>();
     }
 
     @Override

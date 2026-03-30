@@ -3,6 +3,7 @@ package dev.frankheijden.insights.commands;
 import dev.frankheijden.insights.api.InsightsPlugin;
 import dev.frankheijden.insights.api.commands.InsightsCommand;
 import dev.frankheijden.insights.api.config.Messages;
+import dev.frankheijden.insights.api.utils.PlayerSchedulerUtils;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.incendo.cloud.annotations.Argument;
@@ -43,7 +44,7 @@ public class CommandTeleportChunk extends InsightsCommand {
                     default -> throw new IllegalArgumentException("Unhandled result case: " + res);
                 };
             }
-            message.sendTo(player);
+            PlayerSchedulerUtils.run(plugin, player, () -> message.sendTo(player));
         });
     }
 }
