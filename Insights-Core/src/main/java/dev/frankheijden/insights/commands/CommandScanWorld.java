@@ -10,6 +10,7 @@ import dev.frankheijden.insights.api.objects.wrappers.ScanObject;
 import dev.frankheijden.insights.api.reflection.RTileEntityTypes;
 import dev.frankheijden.insights.api.tasks.ScanTask;
 import dev.frankheijden.insights.api.utils.Constants;
+import dev.frankheijden.insights.api.utils.PlayerSchedulerUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.World;
@@ -98,13 +99,23 @@ public class CommandScanWorld extends InsightsCommand {
                 chunkParts.add(ChunkLocation.of(chunk).toPart());
             }
 
-            if (groupByChunk) {
-                ScanTask.scanAndDisplayGroupedByChunk(
-                        plugin, player, chunkParts, chunkParts.size(), options, items, false
-                );
-            } else {
-                ScanTask.scanAndDisplay(plugin, player, chunkParts, chunkParts.size(), options, items, displayZeros);
-            }
+            PlayerSchedulerUtils.run(plugin, player, () -> {
+                if (groupByChunk) {
+                    ScanTask.scanAndDisplayGroupedByChunk(
+                            plugin, player, chunkParts, chunkParts.size(), options, items, false
+                    );
+                } else {
+                    ScanTask.scanAndDisplay(
+                            plugin,
+                            player,
+                            chunkParts,
+                            chunkParts.size(),
+                            options,
+                            items,
+                            displayZeros
+                    );
+                }
+            });
         });
     }
 }

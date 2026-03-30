@@ -2,6 +2,7 @@ package dev.frankheijden.insights.commands.parser;
 
 import dev.frankheijden.insights.api.InsightsPlugin;
 import dev.frankheijden.insights.api.config.Messages;
+import dev.frankheijden.insights.api.utils.PlayerSchedulerUtils;
 import dev.frankheijden.insights.api.utils.StringUtils;
 import dev.frankheijden.insights.commands.CommandScanHistory;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
@@ -44,25 +45,28 @@ public class ScanHistoryPageParser<C> implements ArgumentParser<C, CommandScanHi
             CommandContext<C> ctx,
             CommandInput input
     ) {
-        return CompletableFuture.supplyAsync(() -> {
-            if (ctx.sender() instanceof CommandSourceStack sourceStack
-                    && sourceStack.getSender() instanceof Player player) {
-                var scanHistory = InsightsPlugin.getInstance().getScanHistory();
-                int pages = scanHistory.getHistory(player.getUniqueId())
-                        .map(Messages.PaginatedMessage::getPageAmount)
-                        .orElse(0);
+        if (!(ctx.sender() instanceof CommandSourceStack sourceStack)
+                || !(sourceStack.getSender() instanceof Player player)) {
+            return CompletableFuture.completedFuture(Collections.emptyList());
+        }
 
-                List<String> suggestions = new ArrayList<>(pages);
-                for (var i = 1; i <= pages; i++) {
-                    suggestions.add(String.valueOf(i));
-                }
+        var future = new CompletableFuture<Iterable<? extends Suggestion>>();
+        var plugin = InsightsPlugin.getInstance();
+        PlayerSchedulerUtils.run(plugin, player, () -> {
+            var scanHistory = plugin.getScanHistory();
+            int pages = scanHistory.getHistory(player.getUniqueId())
+                    .map(Messages.PaginatedMessage::getPageAmount)
+                    .orElse(0);
 
-                return StringUtils.findThatStartsWith(suggestions, input.peekString()).stream()
-                        .map(Suggestion::suggestion)
-                        .toList();
+            List<String> suggestions = new ArrayList<>(pages);
+            for (var i = 1; i <= pages; i++) {
+                suggestions.add(String.valueOf(i));
             }
 
-            return Collections.emptyList();
-        });
+            future.complete(StringUtils.findThatStartsWith(suggestions, input.peekString()).stream()
+                    .map(Suggestion::suggestion)
+                    .toList());
+        }, () -> future.complete(Collections.emptyList()));
+        return future;
     }
 }

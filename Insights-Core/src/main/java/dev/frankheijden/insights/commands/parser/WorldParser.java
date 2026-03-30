@@ -1,5 +1,6 @@
 package dev.frankheijden.insights.commands.parser;
 
+import dev.frankheijden.insights.api.InsightsPlugin;
 import java.util.concurrent.CompletableFuture;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
@@ -34,11 +35,13 @@ public class WorldParser<C> implements ArgumentParser<C, World>, SuggestionProvi
             CommandContext<C> ctx,
             CommandInput input
     ) {
-        return CompletableFuture.completedFuture(
-                Bukkit.getWorlds()
-                        .stream()
-                        .map(world -> Suggestion.suggestion(world.getName()))
-                        .toList()
-        );
+        var future = new CompletableFuture<Iterable<? extends Suggestion>>();
+        Bukkit.getGlobalRegionScheduler().run(InsightsPlugin.getInstance(), task -> future.complete(
+            Bukkit.getWorlds()
+                .stream()
+                .map(world -> Suggestion.suggestion(world.getName()))
+                .toList()
+        ));
+        return future;
     }
 }
